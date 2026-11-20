@@ -100,3 +100,31 @@ has simply had too few steps before suspecting a bug.
 trained on? I have only measured it on the training names. And the table
 grows 27 times with every extra letter of context, so how do real
 language models look at much longer contexts?
+
+## 2026-11-19: makemore Part 2 (MLP)
+**What I did:**
+Built a character-level MLP from scratch in PyTorch (3-character context predicting the next character) with a learned embedding table `C`, a `tanh` hidden layer, and cross-entropy loss. Split the dataset 80/10/10 (train/dev/test), used an exponential learning-rate sweep (`10**linspace(-3, 0, 1000)`) to pick `lr = 0.1`, and scaled the model across three versions to compare on the dev set:
+
+| Model | Embedding | Hidden | Params | Dev loss |
+| :--- | :---: | :---: | :---: | :---: |
+| v1 | 2 | 100 | 3,481 | 2.5015 |
+| v2 | 10 | 250 | 14,797 | 2.1922 |
+| v3 | 12 | 350 | 22,751 | 2.1796 |
+
+Sampled names from the trained model and ran a final evaluation on the test set (`2.1786`) on v3, once.
+
+**What broke / what confused me:**
+- Didn't see why we use `10**lre` for the LR sweep, and thought `lrs` had duplicate values (`0.0010`) until `.tolist()` showed PyTorch was just rounding the printout.
+- Wasn't sure how to trust a 1,000-step LR sweep with only one step per LR.
+- Struggled with why `dev` and `test` need to be separate when weights are reset between runs.
+- Didn't understand how `C` trains via backprop when `C[X]` is a lookup, or why similar letters cluster together.
+
+**What I learned:**
+- **LR sweep:** Exponential spacing tests every order of magnitude equally. Because adjacent LRs are nearly identical, the sweep acts as a stress test to find the fastest safe LR right before the loss spikes (`~0.1`).
+- **Train / Dev / Test:** Train tunes weights, dev tunes hyperparameters, and test is a one-time unbiased check. Even when resetting weights, picking winners leaks info into your hyperparameters and burns the set.
+- **Embeddings (`C`):** `C[X]` is a trainable lookup (equivalent to a first linear layer). Backprop sends gradients straight to the looked-up rows, and I think the shared `W1` pulls interchangeable letters to the same coordinates.
+- **Scaling:** Bigger models lowered dev loss, but the gain shrank (2.5015 → 2.1922 → 2.1796). v3 also used a different lr schedule, so I can't say the size alone caused the last gain.
+
+**Open questions:**
+- What do we do next to get a better loss?
+- How big is enough—or too big—in a neural network?
