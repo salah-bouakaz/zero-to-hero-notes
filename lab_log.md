@@ -102,8 +102,8 @@ grows 27 times with every extra letter of context, so how do real
 language models look at much longer contexts?
 
 ## 2026-11-19: makemore Part 2 (MLP)
-**What I did:**Watched Karpathy's makemore Part 2 (1h15) and built
-`03_makemore_bigram/03_makemore_mlp.ipynb`:built a character-level MLP from scratch in PyTorch (3-character context predicting the next character) with a learned embedding table `C`, a `tanh` hidden layer, and cross-entropy loss. Split the dataset 80/10/10 (train/dev/test), used an exponential learning-rate sweep (`10**linspace(-3, 0, 1000)`) to pick `lr = 0.1`, and scaled the model across three versions to compare on the dev set:
+**What I did:** Watched Karpathy's makemore Part 2 (1h15) and built
+`03_makemore_mlp/03_makemore_mlp.ipynb`: built a character-level MLP from scratch in PyTorch (3-character context predicting the next character) with a learned embedding table `C`, a `tanh` hidden layer, and cross-entropy loss. Split the dataset 80/10/10 (train/dev/test), used an exponential learning-rate sweep (`10**linspace(-3, 0, 1000)`) to pick `lr = 0.1`, and scaled the model across three versions to compare on the dev set:
 
 | Model | Embedding | Hidden | Params | Dev loss |
 | :--- | :---: | :---: | :---: | :---: |
