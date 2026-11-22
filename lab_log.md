@@ -102,8 +102,8 @@ grows 27 times with every extra letter of context, so how do real
 language models look at much longer contexts?
 
 ## 2026-11-19: makemore Part 2 (MLP)
-**What I did:**
-Built a character-level MLP from scratch in PyTorch (3-character context predicting the next character) with a learned embedding table `C`, a `tanh` hidden layer, and cross-entropy loss. Split the dataset 80/10/10 (train/dev/test), used an exponential learning-rate sweep (`10**linspace(-3, 0, 1000)`) to pick `lr = 0.1`, and scaled the model across three versions to compare on the dev set:
+**What I did:**Watched Karpathy's makemore Part 2 (1h15) and built
+`03_makemore_bigram/03_makemore_mlp.ipynb`:built a character-level MLP from scratch in PyTorch (3-character context predicting the next character) with a learned embedding table `C`, a `tanh` hidden layer, and cross-entropy loss. Split the dataset 80/10/10 (train/dev/test), used an exponential learning-rate sweep (`10**linspace(-3, 0, 1000)`) to pick `lr = 0.1`, and scaled the model across three versions to compare on the dev set:
 
 | Model | Embedding | Hidden | Params | Dev loss |
 | :--- | :---: | :---: | :---: | :---: |
@@ -128,3 +128,38 @@ Sampled names from the trained model and ran a final evaluation on the test set 
 **Open questions:**
 - What do we do next to get a better loss?
 - How big is enough—or too big—in a neural network?
+
+## 2026-11-22: makemore Part 3 (activations, gradients, BatchNorm)
+**What I did:** Watched Karpathy's makemore Part 3 (1h55) and built
+`04_makemore_batchnorm/04_makemore_batchnorm.ipynb`. Fixed the starting
+loss (20.82 → 3.32; ideal 3.296) by shrinking the last layer (weights ×0.01,
+bias 0), scaled the hidden weights with Kaiming init (gain 5/3 for tanh), and
+added BatchNorm by hand: train 2.0678, val 2.1056 (Part 2 best dev: 2.1796).
+Rebuilt it as Linear/BatchNorm1d/Tanh classes in a 5-layer network and read
+four sensors: activation histograms, gradient histograms, weight gradient to
+data ratio and update to data ratio. Compared a broken network (no BatchNorm,
+weights ×10) with the healthy one.
+
+**What broke / what confused me:**
+- Why tanh near 0 is bad: it is almost a straight line, so stacked layers
+  collapse into one linear layer.
+- What the gain does, and what the four plots actually show and what I should
+  aim for. At first I did not know what we were plotting.
+- I did not keep the broken versions while following the video, so I rebuilt
+  them afterwards from my own code.
+
+**What I learned:** A too-high starting loss means the network starts
+confidently wrong, because big last-layer weights give huge logits. Broken
+network: 82–93% of the tanh outputs stuck at ±1, and gradients of 4.1e-2 in
+the first layer against 1.8e-3 in the last. Healthy network: std 0.63–0.65,
+only 1.7–2.8% stuck, gradients 2.6e-3 to 1.95e-3 in every layer. A stuck
+neuron has gradient about 0, so it never learns. The gain cancels the
+shrinking that tanh does at every layer (5/3 for tanh). BatchNorm forces each
+layer's input to be well sized and uses whole-training-set statistics at test
+time. The update to data ratio should sit near −3 on the log10 plot. Mine sat
+at −2 to −2.5, a bit high, which is fine with BatchNorm. The way to read the
+sensors is to check whether any layer looks different from the others.
+
+**Open questions:** My sensor plots come from step 1000 only. Do the layers
+still look the same after the full 200,000 steps? And why does BatchNorm make
+the weight scale matter less?
